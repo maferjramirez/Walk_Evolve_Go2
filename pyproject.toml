@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "go2-evo-walk"
+version = "0.1.0"
+description = "Evolutionary gait optimizer for a simulated Unitree Go2"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "deap>=1.4.1",
+  "pybullet>=3.2.6"
+]
+
+[project.scripts]
+go2-evo = "go2_evo_walk.evolve:main"
+go2-evo-replay = "go2_evo_walk.replay:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
