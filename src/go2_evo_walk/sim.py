@@ -22,6 +22,8 @@ class SimulationConfig:
     timestep: float = 1.0 / 240.0
     control_force: float = 30.0
     fall_height: float = 0.16
+    max_tilt: float = 0.75
+    unstable_penalty: float = 6.0
 
 
 class QuadrupedEvaluator:
@@ -157,6 +159,7 @@ class QuadrupedEvaluator:
         motion_steps = int(self.config.episode_seconds / self.config.timestep)
         total_action = 0.0
         executed_steps = 0
+        unstable = False
 
         for step in range(settle_steps + motion_steps):
             if step >= settle_steps:
@@ -181,11 +184,17 @@ class QuadrupedEvaluator:
 
             p.stepSimulation(physicsClientId=self.client_id)
             base_pos, base_orn = p.getBasePositionAndOrientation(robot_id, physicsClientId=self.client_id)
+            roll, pitch, _ = p.getEulerFromQuaternion(base_orn)
             if base_pos[2] < self.config.fall_height:
                 break
-        
+            if abs(roll) > self.config.max_tilt or abs(pitch) > self.config.max_tilt:
+                unstable = True
+                break
+
         final_pos, final_orn = p.getBasePositionAndOrientation(robot_id, physicsClientId=self.client_id)
         roll, pitch, yaw = p.getEulerFromQuaternion(final_orn)
+        if unstable:
+            return (-1000.0,)
         forward_progress = final_pos[0] - start_x
         lateral_drift = abs(final_pos[1] - start_y)
         posture_error = abs(roll) + abs(pitch)
@@ -242,8 +251,11 @@ class QuadrupedEvaluator:
 
             p.stepSimulation(physicsClientId=self.client_id)
             time.sleep(sleep_time)
-            base_pos, _ = p.getBasePositionAndOrientation(robot_id, physicsClientId=self.client_id)
+            base_pos, base_orn = p.getBasePositionAndOrientation(robot_id, physicsClientId=self.client_id)
+            roll, pitch, _ = p.getEulerFromQuaternion(base_orn)
             if base_pos[2] < self.config.fall_height:
+                break
+            if abs(roll) > self.config.max_tilt or abs(pitch) > self.config.max_tilt:
                 break
 
         if hold:
